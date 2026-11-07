@@ -3,14 +3,14 @@
   "glyphs_per_font": 8337,
   "fonts": [
     {
-      "id": "editorial",
-      "family": "XSF Editorial",
+      "id": "classica",
+      "family": "XSF Classica",
       "version": "2.002",
       "formats": {
         "woff2": {
-          "file": "XSF-Editorial-Regular.woff2",
-          "bytes": 789440,
-          "sha256": "4207ff10811bf207c79b84bd45655a5ca94785ea089ee988c5a0660a3cb915af"
+          "file": "XSF-Classica-Regular.woff2",
+          "bytes": 780272,
+          "sha256": "bb54e1d8fe3f4e7a6d51e14d7d5e6f9e576c8651c8bf86db1a2dc4c03f9c0fb9"
         }
       }
     }
