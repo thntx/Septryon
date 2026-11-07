@@ -2,6 +2,10 @@
 
 A lightweight, serverless, distraction-free Markdown editor built for seamless auto-saving and instant deployment on **GitHub Pages**.
 
+The editor uses the bundled XSF Didona 2.001 font, with XSF ligatures and kerning enabled.
+Inline code inherits it; Markdown delimiters remain in a system monospace font so the
+literal formatting syntax stays readable. Font checksums are in `fonts/manifest.json`.
+
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
 

@@ -1,0 +1,17 @@
+{
+  "source": "XSF release 2026-11-07; Didona 2.001",
+  "glyphs_per_font": 8337,
+  "fonts": [
+    {
+      "id": "didona",
+      "family": "XSF Didona",
+      "formats": {
+        "woff2": {
+          "file": "XSF-Didona-Regular.woff2",
+          "bytes": 782508,
+          "sha256": "88de7b4c480f3326251d8ed54daffda579562b7080732d0884672522ff6f9f5f"
+        }
+      }
+    }
+  ]
+}
