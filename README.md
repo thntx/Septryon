@@ -2,7 +2,9 @@
 
 A lightweight, serverless, distraction-free Markdown editor built for seamless auto-saving and instant deployment on **GitHub Pages**.
 
-The editor uses the bundled XSF Didona 2.001 font, with XSF ligatures and kerning enabled.
+The editor uses the bundled XSF Editorial 2.002 font, with XSF ligatures and kerning enabled.
+The default text size is 3rem (48px at the standard browser setting), with compact heading
+ratios and smaller syntax markers so the script remains readable on desktop and mobile.
 Inline code inherits it; Markdown delimiters remain in a system monospace font so the
 literal formatting syntax stays readable. Font checksums are in `fonts/manifest.json`.
 
