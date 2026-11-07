@@ -3,14 +3,14 @@
   "glyphs_per_font": 8337,
   "fonts": [
     {
-      "id": "classica",
-      "family": "XSF Classica",
+      "id": "didona",
+      "family": "XSF Didona",
       "version": "2.002",
       "formats": {
         "woff2": {
-          "file": "XSF-Classica-Regular.woff2",
-          "bytes": 780272,
-          "sha256": "bb54e1d8fe3f4e7a6d51e14d7d5e6f9e576c8651c8bf86db1a2dc4c03f9c0fb9"
+          "file": "XSF-Didona-Regular.woff2",
+          "bytes": 759004,
+          "sha256": "919090636e250f8b9a4473ac200062628bfa3c456112789bc5619eba5334ae42"
         }
       }
     }
