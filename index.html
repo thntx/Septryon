@@ -38,6 +38,10 @@
 
         #editor > div { margin-bottom: 0.6em; min-height: 1.5em; }
 
+        /* Inline boxes preserve shaping across syllables, unlike wbr or inline-block. */
+        .xsf-run { line-break: anywhere; white-space: pre-wrap; }
+        .xsf-syllable { white-space: pre; word-break: normal; }
+
         /* Dimmed markdown syntax */
         .md-syntax {
             font-family: ui-monospace, monospace;
@@ -76,6 +80,7 @@
     <div id="editor" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="true" lang="en" data-empty="true"></div>
     <input type="file" id="fallbackFileInput" accept=".md,.txt,.markdown" style="display:none">
 
+    <script src="xsf-syllables.js?v=1"></script>
     <script>
         const editor = document.getElementById('editor');
         const fallbackFileInput = document.getElementById('fallbackFileInput');
@@ -253,6 +258,7 @@
             const { html, cls } = buildDecoration(text);
             block.innerHTML = html;
             block.className = cls;
+            window.XSFSyllables?.decorate(block);
             restoreCaretPos(block, caret);
         }
 
@@ -399,7 +405,17 @@
 
         // ---- Input handler ----
 
+        let composing = false;
+        editor.addEventListener('compositionstart', () => { composing = true; });
+        editor.addEventListener('compositionend', () => {
+            composing = false;
+            decorateBlock(getActiveBlock());
+            updatePlaceholder();
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveContent, 500);
+        });
         editor.addEventListener('input', (e) => {
+            if (composing || e.isComposing) return;
             const block = getActiveBlock();
 
             if (e.inputType === 'insertParagraph' && block) {
