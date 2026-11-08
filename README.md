@@ -1,6 +1,9 @@
-# Web Markdown Typer
+# Sèptryón
 
 A lightweight, serverless, distraction-free Markdown editor built for seamless auto-saving and instant deployment on **GitHub Pages**.
+
+Repository: [thntx/Septryon](https://github.com/thntx/Septryon). The application
+name keeps its accents; the GitHub repository name uses ASCII characters.
 
 The editor uses the bundled XSF Didona 2.003 font, with XSF ligatures and kerning enabled.
 The default text size is 3rem (48px at the standard browser setting), with compact heading
@@ -61,7 +64,7 @@ font modes, editing, IME, selection, formatting, autosave and mobile checks).
 ## 🚀 Live Demo
 
 Access the live web application here:  
-👉 **[https://thntx.github.io/web-markdown-typer/](https://thntx.github.io/web-markdown-typer/)**
+👉 **[https://thntx.github.io/Septryon/](https://thntx.github.io/Septryon/)**
 
 ---
 

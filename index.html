@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Markdown Editor</title>
+    <title>Sèptryón</title>
     <style>
         @font-face {
             font-family: 'XSF Didona';
@@ -128,9 +128,9 @@
 
         function updateTitle(hasError = false) {
             if (fileHandle) {
-                document.title = (hasError ? '⚠️ Error - ' : '● ') + fileHandle.name + ' - Markdown Editor';
+                document.title = (hasError ? '⚠️ Error - ' : '● ') + fileHandle.name + ' - Sèptryón';
             } else {
-                document.title = 'Simple Markdown Editor';
+                document.title = 'Sèptryón';
             }
         }
 
