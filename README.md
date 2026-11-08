@@ -5,7 +5,7 @@ A lightweight, serverless, distraction-free Markdown editor built for seamless a
 Repository: [thntx/Septryon](https://github.com/thntx/Septryon). The application
 name keeps its accents; the GitHub repository name uses ASCII characters.
 
-The editor uses the bundled XSF Didona 2.003 font, with XSF ligatures and kerning enabled.
+The editor uses the bundled XSF Didona 2.004 font, with XSF ligatures and kerning enabled.
 The default text size is 3rem (48px at the standard browser setting), with compact heading
 ratios and smaller syntax markers so the script remains readable on desktop and mobile.
 Inline code inherits it; Markdown delimiters remain in a system monospace font so the

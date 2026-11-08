@@ -5,12 +5,12 @@
     {
       "id": "didona",
       "family": "XSF Didona",
-      "version": "2.003",
+      "version": "2.004",
       "formats": {
         "woff2": {
           "file": "XSF-Didona-Regular.woff2",
-          "bytes": 760580,
-          "sha256": "5200b7be16edf50649d402f15f56129ba0cb4e48c2a6bf0391d090fb7b5b7ced"
+          "bytes": 758312,
+          "sha256": "88be69ee316401d11cd3fafb0be55d24300c60511fbb02c0016544006d206ae6"
         }
       }
     }
