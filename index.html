@@ -34,6 +34,7 @@
             outline: none;
             caret-color: var(--text);
             text-align: justify;
+            white-space: pre-wrap;
         }
 
         #editor > div { margin-bottom: 0.6em; min-height: 1.5em; }
@@ -42,19 +43,27 @@
         .xsf-run { line-break: anywhere; white-space: pre-wrap; }
         .xsf-syllable { white-space: pre; word-break: normal; }
 
-        /* Dimmed markdown syntax */
+        /* Keep the source in the editable text, including the native selection. */
         .md-syntax {
             font-family: ui-monospace, monospace;
-            opacity: 0.2;
-            font-size: 0.5em;
+            opacity: 0;
+            font-size: 0;
+            line-height: 0;
+            white-space: pre;
             font-weight: normal;
             font-style: normal;
         }
+        .md-syntax.is-editing {
+            opacity: 0.6;
+            font-size: 0.5em;
+            line-height: normal;
+        }
 
         /* Block-level */
-        .line-h1 { font-size: 1.35em; font-weight: bold; line-height: 1.4; }
-        .line-h2 { font-size: 1.15em; font-weight: bold; line-height: 1.4; }
-        .line-h3 { font-size: 1.05em; font-weight: bold; line-height: 1.4; }
+        .line-h1, .line-h2, .line-h3 { font-weight: normal; line-height: 1.4; }
+        .line-h1 { font-size: 1.35em; }
+        .line-h2 { font-size: 1.15em; }
+        .line-h3 { font-size: 1.05em; }
         .line-bq { border-left: 3px solid #444; padding-left: 0.8em; color: #999; }
         .line-li { padding-left: 0.5em; }
 
@@ -180,6 +189,34 @@
             return (node && node.parentNode === editor) ? node : null;
         }
 
+        let shownSyntax = [];
+
+        function updateSyntaxVisibility() {
+            const sel = window.getSelection();
+            let next = [];
+            if (document.activeElement === editor && sel?.isCollapsed && editor.contains(sel.focusNode)) {
+                const block = getActiveBlock();
+                const node = sel.focusNode.nodeType === Node.TEXT_NODE ? sel.focusNode.parentElement : sel.focusNode;
+                const inline = node.closest('.md-inline');
+                const prefix = block?.firstElementChild;
+                const prefixOffset = prefix?.classList.contains('md-prefix') ? saveCaretPos(block) : null;
+                if (prefixOffset !== null && prefixOffset <= prefix.textContent.length) {
+                    next = [prefix];
+                } else if (inline) {
+                    const offset = saveCaretPos(inline);
+                    if (offset > 0 && offset < inline.textContent.length) {
+                        next = [...inline.querySelectorAll(':scope > .md-syntax')];
+                    }
+                }
+            }
+            for (const marker of shownSyntax) if (!next.includes(marker)) marker.classList.remove('is-editing');
+            for (const marker of next) marker.classList.add('is-editing');
+            shownSyntax = next;
+        }
+
+        document.addEventListener('selectionchange', updateSyntaxVisibility);
+        editor.addEventListener('blur', updateSyntaxVisibility);
+
         // ---- HTML escape ----
 
         function esc(t) {
@@ -187,6 +224,24 @@
         }
 
         // ---- Decoration engine ----
+
+        function renderInline(text) {
+            // Match source text, not generated HTML; code spans keep literal markers.
+            const pattern = /(?<!\\)\x60(?<code>[^\x60]+)\x60|(?<![\\*])(?<em>\*{1,3})(?!\*)(?<styled>.+?)(?<![\\*])\k<em>(?!\*)|(?<!\\)~~(?<strike>.+?)(?<!\\)~~/g;
+            let html = '', from = 0;
+            for (const match of text.matchAll(pattern)) {
+                const { code, em, styled, strike } = match.groups;
+                const marker = code !== undefined ? '\x60' : em || '~~';
+                const style = code !== undefined ? 'md-code' : !em ? 'md-strike' :
+                    ['md-italic', 'md-bold', 'md-bold md-italic'][em.length - 1];
+                const body = code !== undefined ? esc(code) : renderInline(styled ?? strike);
+                const syntax = `<span class="md-syntax">${marker}</span>`;
+                html += esc(text.slice(from, match.index)) +
+                    `<span class="md-inline">${syntax}<span class="${style}">${body}</span>${syntax}</span>`;
+                from = match.index + match[0].length;
+            }
+            return html + esc(text.slice(from));
+        }
 
         function buildDecoration(raw) {
             let cls = '';
@@ -197,22 +252,22 @@
             const blocks = [
                 [/^(#{1,6}) (.*)$/, m => {
                     cls = 'line-h' + Math.min(m[1].length, 3);
-                    prefix = `<span class="md-syntax">${esc(m[1])} </span>`;
+                    prefix = `<span class="md-syntax md-prefix">${esc(m[1])} </span>`;
                     content = m[2];
                 }],
                 [/^(> )(.*)$/, m => {
                     cls = 'line-bq';
-                    prefix = `<span class="md-syntax">${esc(m[1])}</span>`;
+                    prefix = `<span class="md-syntax md-prefix">${esc(m[1])}</span>`;
                     content = m[2];
                 }],
                 [/^([-*+] )(.*)$/, m => {
                     cls = 'line-li';
-                    prefix = `<span class="md-syntax">${esc(m[1])}</span>`;
+                    prefix = `<span class="md-syntax md-prefix">${esc(m[1])}</span>`;
                     content = m[2];
                 }],
                 [/^(\d+\. )(.*)$/, m => {
                     cls = 'line-li';
-                    prefix = `<span class="md-syntax">${esc(m[1])}</span>`;
+                    prefix = `<span class="md-syntax md-prefix">${esc(m[1])}</span>`;
                     content = m[2];
                 }],
             ];
@@ -222,26 +277,7 @@
                 if (m) { handler(m); break; }
             }
 
-            // Escape content, then apply inline decorations
-            let html = esc(content);
-
-            // Bold + Italic: ***text***
-            html = html.replace(/(\*\*\*)(.+?)(\*\*\*)/g,
-                '<span class="md-syntax">$1</span><span class="md-bold md-italic">$2</span><span class="md-syntax">$3</span>');
-            // Bold: **text**
-            html = html.replace(/(\*\*)(?!\*)(.+?)(?<!\*)(\*\*)/g,
-                '<span class="md-syntax">$1</span><span class="md-bold">$2</span><span class="md-syntax">$3</span>');
-            // Italic: *text*
-            html = html.replace(/(?<!\*)(\*)(?!\*)(.+?)(?<!\*)(\*)(?!\*)/g,
-                '<span class="md-syntax">$1</span><span class="md-italic">$2</span><span class="md-syntax">$3</span>');
-            // Code: `text`
-            html = html.replace(/(`)(.+?)(`)/g,
-                '<span class="md-syntax">$1</span><span class="md-code">$2</span><span class="md-syntax">$3</span>');
-            // Strikethrough: ~~text~~
-            html = html.replace(/(~~)(.+?)(~~)/g,
-                '<span class="md-syntax">$1</span><span class="md-strike">$2</span><span class="md-syntax">$3</span>');
-
-            return { html: prefix + html, cls };
+            return { html: prefix + renderInline(content), cls };
         }
 
         function decorateBlock(block) {
@@ -260,6 +296,7 @@
             block.className = cls;
             window.XSFSyllables?.decorate(block);
             restoreCaretPos(block, caret);
+            updateSyntaxVisibility();
         }
 
         // ---- Placeholder ----

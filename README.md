@@ -6,10 +6,11 @@ Repository: [thntx/Septryon](https://github.com/thntx/Septryon). The application
 name keeps its accents; the GitHub repository name uses ASCII characters.
 
 The editor uses the bundled XSF Didona 2.004 font, with XSF ligatures and kerning enabled.
-The default text size is 3rem (48px at the standard browser setting), with compact heading
-ratios and smaller syntax markers so the script remains readable on desktop and mobile.
-Inline code inherits it; Markdown delimiters remain in a system monospace font so the
-literal formatting syntax stays readable. Font checksums are in `fonts/manifest.json`.
+The default text size is 3rem (48px at the standard browser setting). Headings are
+larger than body text without automatic bold. Markdown delimiters take up no space
+until the caret enters the formatted fragment or moves to the block prefix, where
+they appear in a smaller monospace font. Saving retains the original Markdown.
+Font checksums are in `fonts/manifest.json`.
 
 ### XSF Line Wrapping
 
