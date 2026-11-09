@@ -11,7 +11,7 @@
         '5': '%', '6': '&', '7': '/', '8': '(', '9': ')', '0': '=',
         "'": '?', '\u00a1': '\u00bf'
     }).map(([a, b]) => [b, a]));
-    const MODES = { '[': 'bkk', ']': 'ktb', '}': 'minima', '{': 'number' };
+    const MODES = { '[': 'bkk', ']': 'ktb', '{': 'minima', '}': 'number' };
     const DIGITS = new Set('\u00ba1234567890qwertyuiopasdfghjkl\u00f1z');
     const GLIDES = new Set(['y', 'w', '6', '2']);
     const AFFRICATES = new Set(['t1', '3j', 'ts', '3z']);

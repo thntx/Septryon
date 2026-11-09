@@ -46,7 +46,7 @@ test('gemination and punctuation cannot be orphaned by a generated break', () =>
 
 test('integrals, minimes, cedilla and palatal n keep their distinct identities', () => {
     assert.deepEqual(split('AKA'), ['A', 'KA']);
-    assert.deepEqual(split('}aka'), ['}a', 'ka']);
+    assert.deepEqual(split('{aka'), ['{a', 'ka']);
     for (const text of ['\u00e7a\u00f1a', '\u00c7A\u00d1A', '/A!A', '?a\u00bfa'])
         assert.equal(split(text).join(''), text);
 });
@@ -56,13 +56,15 @@ test('mode propagation, controls and double-space resets are preserved', () => {
     assert.equal(segment('[ka  ka').mode, 'kib');
     assert.deepEqual(split('aka', 'bkk'), ['aka']);
     assert.deepEqual(split('[aka  aka'), ['[aka', '  ', 'a', 'ka']);
-    assert.deepEqual(split('[ka]ka}ka'), ['[ka', ']ka', '}ka']);
+    assert.deepEqual(split('[ka]ka{ka}1x'), ['[ka', ']ka', '{ka', '}1x']);
+    assert.equal(segment('{ka ka').mode, 'minima');
+    assert.equal(segment('{ka  ka').mode, 'kib');
     assert.deepEqual(split('['), ['[']);
 });
 
 test('numeral multipliers are never separated from their digit', () => {
-    assert.deepEqual(split('{1x1a2c3v'), ['{1x', '1', 'a', '2c', '3v']);
-    assert.equal(segment('{1x\u00a1cika').mode, 'kib');
+    assert.deepEqual(split('}1x1a2c3v'), ['}1x', '1', 'a', '2c', '3v']);
+    assert.equal(segment('}1x\u00a1cika').mode, 'kib');
 });
 
 test('whitespace, unknown text, emoji and empty input are lossless', () => {

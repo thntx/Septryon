@@ -5,7 +5,7 @@ A lightweight, serverless, distraction-free Markdown editor built for seamless a
 Repository: [thntx/Septryon](https://github.com/thntx/Septryon). The application
 name keeps its accents; the GitHub repository name uses ASCII characters.
 
-The editor uses the bundled XSF Didona 2.004 font, with XSF ligatures and kerning enabled.
+The editor uses the bundled XSF Didona 2.005 font, with XSF ligatures and kerning enabled.
 The default text size is 3rem (48px at the standard browser setting). Headings are
 larger than body text without automatic bold. Markdown delimiters take up no space
 until the caret enters the formatted fragment or moves to the block prefix, where
@@ -30,6 +30,9 @@ Every candidate break is checked against the font's actual composition rules:
 CV-first then VC in KIB; left-to-right CV/VC in BKK and KTB. A syllable boundary
 inside a ligature is suppressed, keeping adjacent syllables together. Minimes,
 mode switches, double-space resets and numeral multipliers are also protected.
+The opening brace (`{`) starts the unligated minimes mode; the closing brace
+(`}`) starts the base-32 numeral mode. Documents using the previous assignment
+keep their original source; update the brace controls in those documents as needed.
 
 The rendered groups are ordinary inline spans with non-wrapping contents. CSS
 allows wrapping between them while keeping shaping continuous across element
