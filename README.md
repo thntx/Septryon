@@ -38,6 +38,9 @@ The rendered groups are ordinary inline spans with non-wrapping contents. CSS
 allows wrapping between them while keeping shaping continuous across element
 boundaries. This preserves kerning and persistent font modes, unlike `<wbr>` in
 the tested browser. There is no text mutation or width-dependent reformatting.
+Double spaces retain the font's zero-width reset instead of stretching under
+justification. Where per-span justification is unavailable, paragraphs with
+resets use start alignment.
 
 References: [IEC syllabification](https://giec.iec.cat/textgramatica/codi/2.2),
 [IEC vowels and glides](https://giec.iec.cat/textgramatica/codi/2.5),

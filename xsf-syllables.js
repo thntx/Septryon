@@ -162,12 +162,20 @@
             if (node.parentElement.closest('.md-syntax')) { mode = 'kib'; continue; }
             const result = segment(node.data, mode);
             mode = result.mode;
-            if (!node.data || !result.parts.some(p => !p.space)) continue;
+            if (!result.parts.some(p => !p.space || p.text.includes('  '))) continue;
             const run = document.createElement('span');
             run.className = 'xsf-run';
             for (const part of result.parts) {
-                if (part.space) run.append(document.createTextNode(part.text));
-                else {
+                if (part.space) {
+                    for (const chunk of part.text.split(/( {2})/)) {
+                        if (chunk === '  ') {
+                            const reset = document.createElement('span');
+                            reset.className = 'xsf-reset';
+                            reset.textContent = chunk;
+                            run.append(reset);
+                        } else if (chunk) run.append(document.createTextNode(chunk));
+                    }
+                } else {
                     const syllable = document.createElement('span');
                     syllable.className = 'xsf-syllable';
                     syllable.textContent = part.text;
