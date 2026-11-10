@@ -50,8 +50,7 @@
             return result;
         }
 
-        // Mirror the font's CV-first / VC-second KIB lookups. BKK and KTB
-        // instead match both directions in one left-to-right lookup.
+        // All three composition modes match CV before matching leftover VC.
         const group = tokens.map((_, i) => i);
         const paired = tokens.map(() => false);
         const pair = (i, inverse) => {
@@ -63,11 +62,9 @@
                 paired[i] = paired[i + 1] = true;
             }
         };
-        if (mode === 'kib') {
+        if (mode === 'kib' || mode === 'bkk' || mode === 'ktb') {
             for (let i = 0; i + 1 < tokens.length; i++) pair(i, false);
             for (let i = 0; i + 1 < tokens.length; i++) pair(i, true);
-        } else if (mode === 'bkk' || mode === 'ktb') {
-            for (let i = 0; i + 1 < tokens.length; i++) pair(i, tokens[i].vowel);
         }
 
         const nuclei = tokens.flatMap((t, i) => t.vowel ? [i] : []);
@@ -78,8 +75,7 @@
             for (let i = right - 1; i >= Math.max(left + 1, right - 3); i--) {
                 if (onset(tokens.slice(i, right).map(t => t.base))) start = i;
             }
-            // A source ligature can straddle a phonetic boundary (notably VC
-            // in BKK/KTB). Keep both syllables together rather than cut a glyph.
+            // Keep both syllables together if a ligature straddles the boundary.
             if (start > 0 && group[start] !== group[start - 1] &&
                 tokens[start].base !== ':' && tokens[start].base !== ';') result.push(tokens[start].start);
         }

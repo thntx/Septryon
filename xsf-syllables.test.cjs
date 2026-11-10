@@ -11,12 +11,13 @@ test('the spaceless manuscript uses complete syllables and preserves its text', 
     assert.equal(split(text).join(''), text);
 });
 
-test('CV has priority over VC in KIB; BKK and KTB conservatively keep crossing ligatures', () => {
-    assert.deepEqual(split('aka'), ['a', 'ka']);
-    assert.deepEqual(split('[aka'), ['[aka']);
-    assert.deepEqual(split(']aka'), [']aka']);
-    assert.deepEqual(split('atka'), ['at', 'ka']);
-    assert.deepEqual(split('ak+aka'), ['ak+a', 'ka']);
+test('CV has priority over VC in KIB, BKK and KTB', () => {
+    for (const mode of ['', '[', ']']) {
+        assert.deepEqual(split(mode + 'aka'), [mode + 'a', 'ka']);
+        assert.deepEqual(split(mode + '\u00e9ros'), [mode + '\u00e9', 'ros']);
+        assert.deepEqual(split(mode + 'atka'), [mode + 'at', 'ka']);
+        assert.deepEqual(split(mode + 'ak+aka'), [mode + 'ak+a', 'ka']);
+    }
 });
 
 test('vowel nuclei, explicit glides, codas and complex onsets do not need Catalan words', () => {
@@ -54,8 +55,8 @@ test('integrals, minimes, cedilla and palatal n keep their distinct identities',
 test('mode propagation, controls and double-space resets are preserved', () => {
     assert.equal(segment('[ka ka').mode, 'bkk');
     assert.equal(segment('[ka  ka').mode, 'kib');
-    assert.deepEqual(split('aka', 'bkk'), ['aka']);
-    assert.deepEqual(split('[aka  aka'), ['[aka', '  ', 'a', 'ka']);
+    assert.deepEqual(split('aka', 'bkk'), ['a', 'ka']);
+    assert.deepEqual(split('[aka  aka'), ['[a', 'ka', '  ', 'a', 'ka']);
     assert.deepEqual(split('[ka]ka{ka}1x'), ['[ka', ']ka', '{ka', '}1x']);
     assert.equal(segment('{ka ka').mode, 'minima');
     assert.equal(segment('{ka  ka').mode, 'kib');

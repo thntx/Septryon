@@ -1,16 +1,16 @@
 {
-  "source": "XSF release 2026-11-09; swapped minimes and numeral openers",
+  "source": "XSF release 2026-11-10; CV before VC in all composition modes",
   "glyphs_per_font": 8337,
   "fonts": [
     {
       "id": "didona",
       "family": "XSF Didona",
-      "version": "2.005",
+      "version": "2.006",
       "formats": {
         "woff2": {
           "file": "XSF-Didona-Regular.woff2",
-          "bytes": 759084,
-          "sha256": "e84c7975e312f477960908b3700c9d7e29a23bb31f22b349e03ff4a2aa432542"
+          "bytes": 758396,
+          "sha256": "b6afb39a5700981c5d2ab5cbdc2a80d5e10118a6ef0b15ff1b81f36c17e0cc7a"
         }
       }
     }
