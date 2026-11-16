@@ -12,6 +12,16 @@ until the caret enters the formatted fragment or moves to the block prefix, wher
 they appear in a smaller monospace font. Saving retains the original Markdown.
 Font checksums are in `fonts/manifest.json`.
 
+### Line modifiers
+
+- `| Text` centers the line, including any lines it wraps onto.
+- `¬ Text` keeps the text on one line and scales the font size up or down to
+  fill the space between the margins. Revealed syntax markers share that space
+  while editing.
+
+Put a space after the modifier. It goes at the start of the line or immediately
+after a block prefix, as in `# | Title` or `> ¬ Quotation`.
+
 ### XSF Line Wrapping
 
 Spaceless XSF text wraps at syllable boundaries without inserting spaces, hyphens,

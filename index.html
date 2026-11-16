@@ -71,6 +71,9 @@
         .line-h3 { font-size: 1.25em; }
         .line-bq { border-left: 3px solid #444; padding-left: 0.8em; color: #999; }
         .line-li { padding-left: 0.5em; }
+        #editor > div.line-center { text-align: center; }
+        #editor > div.line-fit { text-align: start; white-space: nowrap; }
+        .md-fit-content { display: inline-block; white-space: pre; }
 
         /* Inline */
         .md-bold { font-weight: bold; }
@@ -214,9 +217,19 @@
                     }
                 }
             }
-            for (const marker of shownSyntax) if (!next.includes(marker)) marker.classList.remove('is-editing');
-            for (const marker of next) marker.classList.add('is-editing');
+            const refit = new Set();
+            for (const marker of shownSyntax) {
+                if (next.includes(marker)) continue;
+                marker.classList.remove('is-editing');
+                refit.add(marker.closest('.line-fit'));
+            }
+            for (const marker of next) {
+                if (shownSyntax.includes(marker)) continue;
+                marker.classList.add('is-editing');
+                refit.add(marker.closest('.line-fit'));
+            }
             shownSyntax = next;
+            for (const block of refit) if (block?.isConnected) fitBlock(block);
         }
 
         document.addEventListener('selectionchange', updateSyntaxVisibility);
@@ -257,32 +270,67 @@
             const blocks = [
                 [/^(#{1,6}) (.*)$/, m => {
                     cls = 'line-h' + Math.min(m[1].length, 3);
-                    prefix = `<span class="md-syntax md-prefix">${esc(m[1])} </span>`;
+                    prefix = m[1] + ' ';
                     content = m[2];
                 }],
                 [/^(> )(.*)$/, m => {
                     cls = 'line-bq';
-                    prefix = `<span class="md-syntax md-prefix">${esc(m[1])}</span>`;
+                    prefix = m[1];
                     content = m[2];
                 }],
                 [/^([-*+] )(.*)$/, m => {
                     cls = 'line-li';
-                    prefix = `<span class="md-syntax md-prefix">${esc(m[1])}</span>`;
+                    prefix = m[1];
                     content = m[2];
                 }],
                 [/^(\d+\. )(.*)$/, m => {
                     cls = 'line-li';
-                    prefix = `<span class="md-syntax md-prefix">${esc(m[1])}</span>`;
+                    prefix = m[1];
                     content = m[2];
                 }],
             ];
 
             for (const [re, handler] of blocks) {
-                const m = raw.match(re);
+                const m = content.match(re);
                 if (m) { handler(m); break; }
             }
 
-            return { html: prefix + renderInline(content), cls };
+            const modifier = content.match(/^([|¬]) /);
+            const fit = modifier?.[1] === '¬';
+            if (modifier) {
+                cls = [cls, fit ? 'line-fit' : 'line-center'].filter(Boolean).join(' ');
+                prefix += modifier[0];
+                content = content.slice(modifier[0].length);
+            }
+
+            const marker = prefix ? `<span class="md-syntax md-prefix">${esc(prefix)}</span>` : '';
+            const body = renderInline(content);
+            return { html: marker + (fit ? `<span class="md-fit-content">${body}</span>` : body), cls };
+        }
+
+        function fitBlock(block) {
+            const content = block.querySelector(':scope > .md-fit-content');
+            if (!content) return;
+            const prefix = content.previousElementSibling;
+            const style = getComputedStyle(block);
+            const available = block.getBoundingClientRect().width
+                - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+                - parseFloat(style.borderLeftWidth) - parseFloat(style.borderRightWidth)
+                - prefix.getBoundingClientRect().width;
+
+            let size = parseFloat(style.fontSize);
+            content.style.fontSize = '';
+            // Measure the shaped line, including the font's ligatures and any inline styles.
+            for (let pass = 0; pass < 4 && available > 0; pass++) {
+                const width = content.getBoundingClientRect().width;
+                if (!width || Math.abs(width - available) < 0.05) break;
+                size *= available / width;
+                content.style.fontSize = `${size}px`;
+            }
+        }
+
+        function fitAllBlocks() {
+            editor.querySelectorAll(':scope > .line-fit').forEach(fitBlock);
         }
 
         function decorateBlock(block) {
@@ -299,10 +347,20 @@
             const { html, cls } = buildDecoration(text);
             block.innerHTML = html;
             block.className = cls;
-            window.XSFSyllables?.decorate(block);
+            if (block.classList.contains('line-fit')) fitBlock(block);
+            else window.XSFSyllables?.decorate(block);
             restoreCaretPos(block, caret);
             updateSyntaxVisibility();
         }
+
+        let fitWidth;
+        new ResizeObserver(([entry]) => {
+            const { width } = entry.contentRect;
+            if (width === fitWidth) return;
+            fitWidth = width;
+            fitAllBlocks();
+        }).observe(editor);
+        document.fonts.addEventListener('loadingdone', fitAllBlocks);
 
         // ---- Placeholder ----
 
@@ -358,7 +416,7 @@
                 updatePlaceholder();
                 return;
             }
-            md.split(/\n/).filter(l => l.trim() !== '').forEach(line => {
+            md.split(/\r\n?|\n/).filter(l => l.trim() !== '').forEach(line => {
                 const div = document.createElement('div');
                 div.textContent = line;
                 editor.appendChild(div);
