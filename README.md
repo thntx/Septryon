@@ -18,6 +18,9 @@ Font checksums are in `fonts/manifest.json`.
 - `¬ Text` keeps the text on one line and scales the font size up or down to
   fill the space between the margins. Revealed syntax markers share that space
   while editing.
+- `\ Text` justifies the text at the current font size, including the final line.
+  Text with no spaces is set with extra space between letters, keeping ligatures
+  together. Long text can wrap.
 
 Put a space after the modifier. It goes at the start of the line or immediately
 after a block prefix, as in `# | Title` or `> ¬ Quotation`.
