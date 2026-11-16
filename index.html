@@ -647,30 +647,65 @@
             }
         });
 
-        // ---- Navigate to an H2 by its position (Alt + digits) ----
+        // ---- Navigate to H2 headings (Alt + digits or arrows) ----
 
         const headings = editor.getElementsByClassName('line-h2');
-        let headingNumber = '';
+        let headingJump = null;
+        let usedHeadingShortcut = false;
         document.addEventListener('keydown', (e) => {
-            if (!e.altKey || e.key === 'Alt') return;
+            if (e.key === 'Alt') return;
+            if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) {
+                headingJump = null;
+                return;
+            }
+            const direction = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
             const digit = /^Digit([0-9])$/.exec(e.code)?.[1] ?? /^[0-9]$/.exec(e.key)?.[0];
-            if (digit === undefined || e.ctrlKey || e.metaKey || e.shiftKey || e.isComposing) {
-                headingNumber = '';
+            if (digit === undefined && !direction) {
+                headingJump = null;
                 return;
             }
             e.preventDefault();
-            if (!e.repeat) headingNumber += digit;
+            usedHeadingShortcut = true;
+            if (e.repeat) return;
+            headingJump = {
+                key: e.code || e.key,
+                digits: direction ? '' : (headingJump?.digits ?? '') + digit,
+                direction,
+            };
         });
 
         document.addEventListener('keyup', (e) => {
-            if (e.key !== 'Alt' || !headingNumber) return;
+            if (e.key === 'Alt') {
+                if (usedHeadingShortcut) e.preventDefault();
+                usedHeadingShortcut = false;
+                return;
+            }
+            if (headingJump?.key !== (e.code || e.key)) return;
             e.preventDefault();
-            const index = Number(headingNumber) - 1;
-            headingNumber = '';
-            const heading = headings[index];
+            const { digits, direction } = headingJump;
+            headingJump = null;
+            const heading = direction ? adjacentHeading(direction) : headings[Number(digits) - 1];
             if (heading) scrollToHeading(heading);
         });
-        window.addEventListener('blur', () => { headingNumber = ''; });
+        window.addEventListener('blur', () => {
+            headingJump = null;
+            usedHeadingShortcut = false;
+        });
+
+        function adjacentHeading(direction) {
+            const scrollTop = document.scrollingElement.scrollTop;
+            const edge = scrollTop + direction;
+            let first = 0;
+            let last = headings.length;
+            while (first < last) {
+                const middle = Math.floor((first + last) / 2);
+                const top = headingScrollTop(headings[middle], scrollTop);
+                // Treat subpixel rounding at the current heading as the same position.
+                if (top < edge || (direction > 0 && top === edge)) first = middle + 1;
+                else last = middle;
+            }
+            return headings[direction > 0 ? first : first - 1];
+        }
 
         function headingScrollTop(heading, scrollTop) {
             const range = new Range();
