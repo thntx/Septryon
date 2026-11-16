@@ -74,20 +74,17 @@
         #editor > div.line-center { text-align: center; }
         #editor > div.line-fit { text-align: start; white-space: nowrap; }
         .md-fit-content { display: inline-block; white-space: pre; }
-        #editor > div.line-justify { text-align: justify; text-align-last: justify; }
-        .line-justify-letters { text-justify: inter-character; }
-        #editor > div.line-justify-letters:not(.line-track-wrap) {
+        #editor > div.line-justify {
             text-align: start;
             text-align-last: start;
             white-space: nowrap;
             overflow-x: clip;
         }
-        .line-justify .md-syntax { text-justify: none; }
-        .line-justify-letters .md-syntax,
-        .line-justify-letters .md-track-end { letter-spacing: normal; }
-        .line-justify-letters .xsf-run { white-space: inherit; }
-        .line-justify-letters:not(.line-track-wrap) > .md-track-content { display: inline-block; }
-        .line-track-wrap .xsf-syllable { position: relative; }
+        .line-justify .md-syntax,
+        .line-justify .xsf-reset { word-spacing: normal; letter-spacing: normal; }
+        .line-justify .md-track-end { letter-spacing: normal; }
+        .line-justify .xsf-run { white-space: inherit; }
+        .md-track-content { display: inline-block; white-space: pre; transform-origin: left center; }
 
         /* Inline */
         .md-bold { font-weight: bold; }
@@ -116,7 +113,7 @@
         const editor = document.getElementById('editor');
         const fallbackFileInput = document.getElementById('fallbackFileInput');
         const STORAGE_KEY = 'simple_editor_content';
-        const widthDependentBlocks = '.line-fit, .line-justify-letters';
+        const widthDependentBlocks = '.line-fit, .line-justify';
         const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
         let saveTimeout;
         let fileHandle = null;
@@ -314,15 +311,12 @@
             const modifier = content.match(/^([|¬\\]) /);
             const modifierClasses = { '|': 'line-center', '¬': 'line-fit', '\\': 'line-justify' };
             const modifierClass = modifierClasses[modifier?.[1]];
-            let contentClass = modifierClass === 'line-fit' ? 'md-fit-content' : '';
+            const contentClass = modifierClass === 'line-fit' ? 'md-fit-content' :
+                modifierClass === 'line-justify' ? 'md-track-content' : '';
             if (modifier) {
                 prefix += modifier[0];
                 content = content.slice(modifier[0].length);
                 cls = [cls, modifierClass].filter(Boolean).join(' ');
-                if (modifierClass === 'line-justify' && !/\s/.test(content)) {
-                    cls += ' line-justify-letters';
-                    contentClass = 'md-track-content';
-                }
             }
 
             const marker = prefix ? `<span class="md-syntax md-prefix">${esc(prefix)}</span>` : '';
@@ -351,57 +345,66 @@
             }
         }
 
-        function justifyLetters(block) {
+        function justifyLine(block) {
             const content = block.querySelector(':scope > .md-track-content');
             if (!content) return;
-            block.classList.remove('line-track-wrap');
+            content.style.wordSpacing = '';
             content.style.letterSpacing = '';
-            const syllables = block.querySelectorAll('.xsf-syllable');
-            for (const syllable of syllables) syllable.style.left = '';
+            content.style.transform = '';
 
+            const last = [...content.querySelectorAll('.xsf-syllable')].at(-1);
+            if (!last || document.fonts.status === 'loading') return;
             const style = getComputedStyle(block);
+            const left = content.getBoundingClientRect().left;
             const right = block.getBoundingClientRect().right
                 - parseFloat(style.paddingRight) - parseFloat(style.borderRightWidth);
-            const natural = content.getBoundingClientRect();
-            const available = right - natural.left;
-            if (natural.width <= available) {
-                if (document.fonts.status !== 'loading') trackSingleLine(block, content, natural.left, right);
-                return;
-            }
-
-            block.classList.add('line-track-wrap');
-            justifyWrappedLines(syllables, right);
-        }
-
-        function trackSingleLine(block, content, left, right) {
-            const tail = content.querySelector('.md-track-end') || markFinalGlyph(block, content);
-            if (!tail) return;
+            const available = right - left;
+            if (available <= 0) return;
+            const fontSize = parseFloat(style.fontSize);
+            let suffixWidth = 0;
             for (const marker of content.querySelectorAll('.md-syntax.is-editing')) {
-                if (tail.compareDocumentPosition(marker) & Node.DOCUMENT_POSITION_FOLLOWING) {
-                    right -= marker.getBoundingClientRect().width;
+                if (last.compareDocumentPosition(marker) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                    suffixWidth += marker.getBoundingClientRect().width;
                 }
             }
-            const text = new Range();
-            text.selectNodeContents(tail);
-            const natural = text.getBoundingClientRect().right;
-            const probe = 8;
-            content.style.letterSpacing = `${probe}px`;
-            const gaps = Math.round((text.getBoundingClientRect().right - natural) / probe);
-            content.style.letterSpacing = '';
-            if (gaps <= 0 || natural <= left) return;
 
-            const extra = Math.max(0, right - natural);
-            let spacing = extra / gaps;
-            for (let pass = 0; pass < 4; pass++) {
-                content.style.letterSpacing = `${spacing}px`;
-                const used = text.getBoundingClientRect().right - natural;
-                if (used <= 0 || Math.abs(extra - used) < 0.05) break;
-                spacing *= extra / used;
+            const text = new Range();
+            text.selectNodeContents(last);
+            const target = right - suffixWidth;
+            if (!adjustLineSpacing(content, text, target, 'wordSpacing', -fontSize * 0.08)) {
+                const tail = last.querySelector('.md-track-end') || markFinalGlyph(block, content, last.firstChild);
+                if (tail) {
+                    text.selectNodeContents(tail);
+                    adjustLineSpacing(content, text, target, 'letterSpacing', -fontSize * 0.05);
+                }
             }
+
+            // Once the spacing can no longer tighten, preserve the height and fit the line horizontally.
+            const used = text.getBoundingClientRect().right + suffixWidth - left;
+            if (used - available > 0.05) content.style.transform = `scaleX(${available / used})`;
         }
 
-        function markFinalGlyph(block, content) {
-            const node = [...content.querySelectorAll('.xsf-syllable')].at(-1)?.firstChild;
+        function adjustLineSpacing(content, text, right, property, minimum) {
+            const natural = text.getBoundingClientRect().right;
+            const extra = right - natural;
+            if (Math.abs(extra) < 0.05) return true;
+            const probe = 8;
+            content.style[property] = `${probe}px`;
+            const gaps = Math.round((text.getBoundingClientRect().right - natural) / probe);
+            content.style[property] = '';
+            if (gaps <= 0) return false;
+
+            let spacing = Math.max(minimum, extra / gaps);
+            for (let pass = 0; pass < 4; pass++) {
+                content.style[property] = `${spacing}px`;
+                const used = text.getBoundingClientRect().right - natural;
+                if (!used || Math.abs(extra - used) < 0.05 || (spacing === minimum && used > extra)) break;
+                spacing = Math.max(minimum, spacing * extra / used);
+            }
+            return true;
+        }
+
+        function markFinalGlyph(block, content, node) {
             if (!node || node.nodeType !== Node.TEXT_NODE) return;
 
             // Find the final shaped glyph via the width added by one pixel of tracking.
@@ -429,35 +432,9 @@
             return tail;
         }
 
-        function justifyWrappedLines(syllables, right) {
-            const lines = [];
-            let bottom = -Infinity;
-            for (const syllable of syllables) {
-                const rect = syllable.getBoundingClientRect();
-                if (!rect.width) continue;
-                if (rect.top >= bottom) {
-                    lines.push([]);
-                    bottom = -Infinity;
-                }
-                lines.at(-1).push({ syllable, rect });
-                bottom = Math.max(bottom, rect.bottom);
-            }
-
-            // Fill the space left by native justification when ligatures reduce its opportunities.
-            for (const line of lines) {
-                if (line.length < 2) continue;
-                line.sort((a, b) => a.rect.left - b.rect.left);
-                const extra = right - line.at(-1).rect.right;
-                if (extra <= 0) continue;
-                line.forEach(({ syllable }, index) => {
-                    syllable.style.left = `${index * extra / (line.length - 1)}px`;
-                });
-            }
-        }
-
         function layoutBlock(block) {
             if (block.classList.contains('line-fit')) fitBlock(block);
-            else if (block.classList.contains('line-justify-letters')) justifyLetters(block);
+            else if (block.classList.contains('line-justify')) justifyLine(block);
         }
 
         function layoutMarkedBlocks() {
