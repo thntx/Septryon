@@ -26,6 +26,12 @@ Font checksums are in `fonts/manifest.json`.
 Put a space after the modifier. It goes at the start of the line or immediately
 after a block prefix, as in `# | Title` or `> ¬ Quotation`.
 
+### Heading navigation
+
+Hold Alt, type the position of a second-level heading in the document, and
+release Alt to jump to it. For example, Alt+1 jumps to the first `##` heading,
+and holding Alt while typing 1 then 2 jumps to the twelfth.
+
 ### XSF Line Wrapping
 
 Spaceless XSF text wraps at syllable boundaries without inserting spaces, hyphens,
