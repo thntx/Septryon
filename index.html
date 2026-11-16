@@ -551,6 +551,7 @@
         }
 
         function loadIntoEditor(md) {
+            editor.style.removeProperty('padding-bottom');
             editor.innerHTML = '';
             if (!md || !md.trim()) {
                 const div = document.createElement('div');
@@ -648,6 +649,7 @@
 
         // ---- Navigate to an H2 by its position (Alt + digits) ----
 
+        const headings = editor.getElementsByClassName('line-h2');
         let headingNumber = '';
         document.addEventListener('keydown', (e) => {
             if (!e.altKey || e.key === 'Alt') return;
@@ -665,15 +667,39 @@
             e.preventDefault();
             const index = Number(headingNumber) - 1;
             headingNumber = '';
-            const heading = editor.querySelectorAll(':scope > .line-h2')[index];
-            if (!heading) return;
-
-            editor.focus({ preventScroll: true });
-            const prefix = heading.querySelector(':scope > .md-prefix');
-            restoreCaretPos(heading, prefix?.textContent.length ?? 0);
-            heading.scrollIntoView({ block: 'center' });
+            const heading = headings[index];
+            if (heading) scrollToHeading(heading);
         });
         window.addEventListener('blur', () => { headingNumber = ''; });
+
+        function headingScrollTop(heading, scrollTop) {
+            const range = new Range();
+            for (let previous = heading.previousElementSibling; previous; previous = previous.previousElementSibling) {
+                range.selectNodeContents(previous);
+                const rect = range.getBoundingClientRect();
+                if (rect.width > 0) return Math.max(0, Math.ceil(scrollTop + rect.bottom));
+            }
+            return Math.max(0, Math.ceil(scrollTop + heading.getBoundingClientRect().top
+                - parseFloat(getComputedStyle(editor).paddingTop)));
+        }
+
+        function scrollToHeading(heading) {
+            const page = document.scrollingElement;
+            let top;
+            // Adding scroll space can introduce a scrollbar and change the wrapping above the heading.
+            for (let pass = 0; pass < 2; pass++) {
+                const scrollTop = page.scrollTop;
+                top = headingScrollTop(heading, scrollTop);
+                const requiredHeight = top + page.clientHeight;
+                if (requiredHeight <= page.scrollHeight) break;
+
+                const last = editor.lastElementChild;
+                const end = scrollTop + last.getBoundingClientRect().bottom
+                    + parseFloat(getComputedStyle(last).marginBottom);
+                editor.style.paddingBottom = `${Math.ceil(requiredHeight - end)}px`;
+            }
+            window.scrollTo({ top, behavior: 'instant' });
+        }
 
         // ---- Input handler ----
 

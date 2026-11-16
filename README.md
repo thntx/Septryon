@@ -29,8 +29,10 @@ after a block prefix, as in `# | Title` or `> ¬ Quotation`.
 ### Heading navigation
 
 Hold Alt, type the position of a second-level heading in the document, and
-release Alt to jump to it. For example, Alt+1 jumps to the first `##` heading,
-and holding Alt while typing 1 then 2 jumps to the twelfth.
+release Alt to scroll to it. For example, Alt+1 shows the first `##` heading,
+and holding Alt while typing 1 then 2 shows the twelfth. The heading appears
+near the top of the viewport with the preceding text above the visible area.
+The caret and selection stay where they were.
 
 ### XSF Line Wrapping
 
