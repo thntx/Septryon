@@ -82,9 +82,12 @@
         }
         .line-justify .md-syntax,
         .line-justify .xsf-reset { word-spacing: normal; letter-spacing: normal; }
-        .line-justify .md-track-end { letter-spacing: normal; }
         .line-justify .xsf-run { white-space: inherit; }
         .md-track-content { display: inline-block; white-space: pre; transform-origin: left center; }
+        .md-track-unit {
+            position: relative;
+            left: calc(var(--track-index, 0) * var(--track-gap, 0px));
+        }
 
         /* Inline */
         .md-bold { font-weight: bold; }
@@ -349,7 +352,7 @@
             const content = block.querySelector(':scope > .md-track-content');
             if (!content) return;
             content.style.wordSpacing = '';
-            content.style.letterSpacing = '';
+            content.style.removeProperty('--track-gap');
             content.style.transform = '';
 
             const last = [...content.querySelectorAll('.xsf-syllable')].at(-1);
@@ -371,12 +374,8 @@
             const text = new Range();
             text.selectNodeContents(last);
             const target = right - suffixWidth;
-            if (!adjustLineSpacing(content, text, target, 'wordSpacing', -fontSize * 0.08)) {
-                const tail = last.querySelector('.md-track-end') || markFinalGlyph(block, content, last.firstChild);
-                if (tail) {
-                    text.selectNodeContents(tail);
-                    adjustLineSpacing(content, text, target, 'letterSpacing', -fontSize * 0.05);
-                }
+            if (!adjustWordSpacing(content, text, target, -fontSize * 0.08)) {
+                trackLetters(block, content, text, target, -fontSize * 0.05);
             }
 
             // Once the spacing can no longer tighten, preserve the height and fit the line horizontally.
@@ -384,19 +383,19 @@
             if (used - available > 0.05) content.style.transform = `scaleX(${available / used})`;
         }
 
-        function adjustLineSpacing(content, text, right, property, minimum) {
+        function adjustWordSpacing(content, text, right, minimum) {
             const natural = text.getBoundingClientRect().right;
             const extra = right - natural;
             if (Math.abs(extra) < 0.05) return true;
             const probe = 8;
-            content.style[property] = `${probe}px`;
+            content.style.wordSpacing = `${probe}px`;
             const gaps = Math.round((text.getBoundingClientRect().right - natural) / probe);
-            content.style[property] = '';
+            content.style.wordSpacing = '';
             if (gaps <= 0) return false;
 
             let spacing = Math.max(minimum, extra / gaps);
             for (let pass = 0; pass < 4; pass++) {
-                content.style[property] = `${spacing}px`;
+                content.style.wordSpacing = `${spacing}px`;
                 const used = text.getBoundingClientRect().right - natural;
                 if (!used || Math.abs(extra - used) < 0.05 || (spacing === minimum && used > extra)) break;
                 spacing = Math.max(minimum, spacing * extra / used);
@@ -404,32 +403,67 @@
             return true;
         }
 
-        function markFinalGlyph(block, content, node) {
-            if (!node || node.nodeType !== Node.TEXT_NODE) return;
+        function trackLetters(block, content, text, target, minimum) {
+            if (!content.querySelector('.md-track-unit')) prepareTrackUnits(block, content);
+            const units = [...content.querySelectorAll('.md-track-unit')]
+                .map(unit => ({ unit, rect: unit.getBoundingClientRect() }))
+                .filter(({ rect }) => rect.width > 0)
+                .sort((a, b) => a.rect.left - b.rect.left);
+            if (units.length < 2) return;
 
-            // Find the final shaped glyph via the width added by one pixel of tracking.
-            // A partial range inside a ligature receives only a fraction of that pixel.
+            const last = units.at(-1);
+            const gap = Math.max(minimum, (target - last.rect.right) / (units.length - 1));
+            units.forEach(({ unit }, index) => unit.style.setProperty('--track-index', index));
+            content.style.setProperty('--track-gap', `${gap}px`);
+            text.selectNodeContents(last.unit);
+        }
+
+        function prepareTrackUnits(block, content) {
             const range = new Range();
-            const starts = [...graphemes.segment(node.data)].map(({ index }) => index).reverse();
-            const measure = index => {
-                range.setStart(node, index);
-                range.setEnd(node, node.length);
+            const measure = (node, end) => {
+                range.setStart(node, 0);
+                range.setEnd(node, end);
                 return range.getBoundingClientRect().width;
             };
-            const natural = starts.map(measure);
-            content.style.letterSpacing = '1px';
-            const clusterStart = starts.find((index, i) => measure(index) - natural[i] >= 0.95) ?? 0;
+            const runs = [...content.querySelectorAll('.xsf-syllable')]
+                .filter(run => run.firstChild?.nodeType === Node.TEXT_NODE)
+                .map(run => {
+                    const node = run.firstChild;
+                    const boundaries = [...graphemes.segment(node.data)].slice(1)
+                        .map(({ index }) => ({ index, width: measure(node, index) }));
+                    return { run, node, boundaries };
+                });
+
+            // A boundary inside a ligature gains only a fraction of the probe spacing.
+            // Apply the probe uniformly so persistent font modes keep their shaping context.
+            const probe = 8;
+            content.style.letterSpacing = `${probe}px`;
+            const clusters = runs.map(({ node, boundaries }) =>
+                boundaries.filter(({ index, width }) => {
+                    const units = (measure(node, index) - width) / probe;
+                    return Math.abs(units - Math.round(units)) < 0.05;
+                }).map(({ index }) => index));
             content.style.letterSpacing = '';
 
             const selection = window.getSelection();
             const caret = selection?.isCollapsed ? saveCaretPos(block) : null;
-            const tail = document.createElement('span');
-            tail.className = 'md-track-end';
-            range.setStart(node, clusterStart);
-            range.setEnd(node, node.length);
-            range.surroundContents(tail);
+            runs.forEach(({ run, node }, index) => {
+                const breaks = clusters[index];
+                if (!breaks.length) {
+                    run.classList.add('md-track-unit');
+                    return;
+                }
+                let start = 0;
+                const parts = [...breaks, node.length].map(end => {
+                    const unit = document.createElement('span');
+                    unit.className = 'md-track-unit';
+                    unit.textContent = node.data.slice(start, end);
+                    start = end;
+                    return unit;
+                });
+                node.replaceWith(...parts);
+            });
             restoreCaretPos(block, caret);
-            return tail;
         }
 
         function layoutBlock(block) {
