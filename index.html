@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sèptryón</title>
+    <!-- A zero-width space keeps browsers from substituting the page URL. -->
+    <title>&#8203;</title>
     <style>
         @font-face {
             font-family: 'XSF Didona';
@@ -155,16 +156,6 @@
                 const tx = db.transaction(DB_STORE, 'readwrite');
                 tx.objectStore(DB_STORE).put(handle, 'synced_handle');
             } catch {}
-        }
-
-        // ---- Title Status ----
-
-        function updateTitle(hasError = false) {
-            if (fileHandle) {
-                document.title = (hasError ? '⚠️ Error - ' : '● ') + fileHandle.name + ' - Sèptryón';
-            } else {
-                document.title = 'Sèptryón';
-            }
         }
 
         // ---- Caret save / restore ----
@@ -536,16 +527,13 @@
                 try {
                     const hasPerm = await verifyPermission(fileHandle);
                     if (!hasPerm) {
-                        updateTitle(true);
                         return;
                     }
                     const writable = await fileHandle.createWritable();
                     await writable.write(md);
                     await writable.close();
-                    updateTitle(false);
                 } catch (err) {
                     console.error('Error desant al fitxer sincronitzat:', err);
-                    updateTitle(true);
                 }
             }
         }
@@ -580,7 +568,6 @@
                     const file = await fileHandle.getFile();
                     const text = await file.text();
                     loadIntoEditor(text);
-                    updateTitle();
                 } catch (e) {
                     console.log('Handle emmagatzemat no vàlid:', e);
                 }
@@ -616,7 +603,6 @@
                     const file = await fileHandle.getFile();
                     const text = await file.text();
                     loadIntoEditor(text);
-                    updateTitle();
                     await saveContent();
                 } catch (err) {
                     if (err.name !== 'AbortError') {
