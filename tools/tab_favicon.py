@@ -233,6 +233,23 @@ def capture(scheme, scale, local, page, build, vertical, out):
         browser.get(page)
         assert browser.execute_script("return document.title") == "\u200b"
         assert browser.execute_script("return matchMedia('(prefers-color-scheme: dark)').matches") == (scheme == "dark")
+        if n == 16 and not vertical:
+            errors = browser.execute_async_script("""
+                const done = arguments[0];
+                async function tile(name, flip) {
+                    const img = new Image(); img.src = 'icons/' + name + '.png';
+                    await img.decode();
+                    const ctx = new OffscreenCanvas(16, 16).getContext('2d');
+                    ctx.fillStyle = '#191919'; ctx.fillRect(0, 0, 16, 16);
+                    if (flip) { ctx.translate(16, 0); ctx.scale(-1, 1); }
+                    ctx.drawImage(img, 0, 0);
+                    return ctx.getImageData(0, 0, 16, 16).data;
+                }
+                Promise.all([tile('chrome-close-reference', true), tile('tab-reference', false)])
+                    .then(([a,b]) => done(a.reduce((sum,v,i) => sum + (v !== b[i]), 0)),
+                          e => done(String(e)));
+            """)
+            assert errors == 0, ("Chrome reference RGBA channel differences", errors)
         browser.execute_async_script("document.fonts.ready.then(arguments[0])")
         time.sleep(.65)  # Chrome animates its loading spinner back into the favicon.
         until = time.monotonic() + 15
@@ -282,9 +299,20 @@ def reference(filename, out, write):
     assert sample.size == (16,16) and sample.getchannel("A").getextrema() == (255,255)
     raw = np.asarray(sample)[:,:,0]
     bg, fg = int(raw.min()), int(raw.max())
-    alpha = np.rint((raw.astype(float)-bg)*255/(fg-bg)).astype(np.uint8)
-    mirror = Image.new("RGBA", sample.size, (fg,fg,fg))
-    mirror.putalpha(Image.fromarray(alpha))
+    # Choose the closest neutral ink/coverage pair that survives straight-alpha
+    # rounding (Pillow), rounded premultiplication (Canvas), and native Skia.
+    ink, alpha = np.indices((256,256))
+    premul = (ink*alpha + 127)//255
+    straight = (ink*alpha + bg*(255-alpha) + 127)//255
+    canvas = premul + (bg*(255-alpha) + 127)//255
+    native = premul + (bg*(256-alpha) >> 8)
+    rgba = np.zeros((*raw.shape, 4), dtype=np.uint8)
+    for value in np.unique(raw).tolist():
+        v, a = np.where((straight == value) & (canvas == value) & (native == value))
+        ideal = (value-bg)*255/(fg-bg)
+        best = np.lexsort((abs(a-ideal), abs(v-fg)))[0]
+        rgba[raw == value] = (v[best], v[best], v[best], a[best])
+    mirror = Image.fromarray(rgba)
     mirror = mirror.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
     matte = Image.new("RGBA", sample.size, (bg,bg,bg,255))
     composite = Image.alpha_composite(matte, mirror)
