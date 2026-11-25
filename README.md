@@ -12,6 +12,23 @@ until the caret enters the formatted fragment or moves to the block prefix, wher
 they appear in a smaller monospace font. Saving retains the original Markdown.
 Font checksums are in `fonts/manifest.json`.
 
+### Tab icon
+
+The blank tab title sits between two crosses. The favicon mirrors Chrome's
+actual close-button raster; the [original screenshot crop](icons/chrome-close-reference.png)
+and its [transparent mirror](icons/tab-reference.png) are available separately.
+The unmirrored native button is also available as a transparent PNG for
+[dark](icons/chrome-close-dark.png) and [light](icons/chrome-close-light.png) Chrome.
+The site selects static light/dark icons and compensates for Chrome's second
+resize at 125%, 150% and 175%. It cannot read a custom browser theme.
+
+On Windows, run `python tools/tab_favicon.py` to compare both crosses in the
+native Chrome tab strip at five display scales. Use `--vertical` for vertical
+tabs, `--published` for Pages, or `--write` to rebuild the icons. This needs
+Chrome, Selenium, Pillow, NumPy and pywin32; it only captures a temporary test
+profile. Chrome uses a [vector close button](https://github.com/chromium/chromium/blob/158.0.8127.37/chrome/browser/ui/views/tabs/tab/tab_close_button.cc),
+not a stock PNG. See the [Chromium license](icons/LICENSE.chromium).
+
 ### Line modifiers
 
 - `| Text` centers the line, including any lines it wraps onto.
